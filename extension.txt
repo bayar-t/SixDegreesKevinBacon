@@ -1,0 +1,240 @@
+File name: extension.txt
+Names: Jamie Shi (A12678538) and Sergelenbayar Tsogtbaatar (A12949154)
+Date: March 14, 2017
+Overview: Explains the problem we solved, our implementation
+Assignment #4
+
+///////////////////////////////////////////////////////////////////////////////
+                                 Problem:
+///////////////////////////////////////////////////////////////////////////////
+We decided to solve the problem explained in links 2a and 2b from the
+Coursera course. This involved using the greedy algorithm to find the
+dominating set in a graph. In our case, we considered a Facebook network.
+We wanted to find out which users (ideally close to the minimum dominating
+set, i.e. the minimum number of users) had to post the same message so that
+this message reaches all the users in the Facebook friends network. 
+
+
+///////////////////////////////////////////////////////////////////////////////
+                             How we solved it:
+///////////////////////////////////////////////////////////////////////////////
+We created a User class to hold the information of a single Facebook user,
+and a Network class to hold the information of all the users in the 
+Facebook network. Thus, in the User class, we had an int to represent the
+user ID, a bool (called covered) to indicate whether the current user 
+received the message, and a vector of ints (where the ints are user IDs)
+to represent the current user's list of friends. 
+
+In the Network class, we had an unordered map that mapped an int (userID)
+to a User pointer. This allowed for average-case constant runtime for
+finding the user associated with a user ID. The Network class also had a
+function, loadFromFile, which was similar to the loadFromFile function used
+for ActorGraph. In this case, loadFromFile would read all the lines in a 
+file (each line would two ints separated by a space, indicating that the
+first user is friends with the second user. For each line, we used userMap 
+to check if the first user existed in the network; if it did not, we create a
+new User object for the first user, and added the second user's ID to the 
+first user's friends vector. If the first user already existed in the 
+network, then we use the userMap to retrieve the first user, and then
+push the second user's ID to this first user's friends vector. Thus,
+loadFromFile would store all the users (along with their respective list of 
+friends) into the network. 
+
+To actually solve the problem, we used a greedy algorithm to find the 
+approximate needed users to let the network see the message. This solution
+is approximate since the dominating set is NP hard, so finding a perfect
+solution is hard. To elaborate on the greedy algorithm, we based our code on
+what was discussed by Professor Leo Porter from Coursera's Lecture 12 video.
+We first marked all the vertices (the users) as uncovered, indicating that no
+user has received the message yet. Then, we used a while loop such that it 
+keeps running when there are still uncovered users (we had an int called
+numLeftToCover, set to the number of user nodes, and we decrement this int
+variable each time we cover a user). We then found the user with the most 
+uncovered friends by iterating through all the users (via iterators for the
+userMap), and finding the user with the largest friends vector. We added that
+user to the dominant set, and marked this user along with all its friends as
+covered. Then we removed all these covered users from every user's friends 
+vector. 
+In the while loop, we also used an unordered map called "uncoveredUsers" to
+keep track of all the users that are currently uncovered. This was done by
+iterating through all the users via iterators to the network's userMap, and
+checking whether each user is covered -- only uncovered users get added to the
+uncoveredUsers map, and we clear the uncoveredUsers in each iteration of the
+while loop so that we can update the uncoveredUsers for each iteration.
+Thus, after all users are covered, numLeftToCover would be 0 so we would exit
+the while loop, and output the users in the dominantUsers set to the outfile.
+(These users are the ones who have the most uncovered friends in each while 
+loop iteration, so they can share a message the most effectively relative to 
+their uncovered friends.) 
+
+Our algorithm assumes that the graph is undirected, since for social 
+network sites like Facebook, if you friends with someone, that person is
+also friends with you (unlike Twitter, where you could follow someone and
+they do not necessarily have to follow you back). So for the input file,
+if there was a user ID "12" connected to another user ID "94", then there
+must also be a user ID "94" connected to the user ID "12". This is what
+the given Facebook data set (e.g. facebook_ucsd.txt in the SocialNetworks
+folder) does. 
+
+///////////////////////////////////////////////////////////////////////////////
+                             How we tested it:
+///////////////////////////////////////////////////////////////////////////////
+We tested our implementation of the dominating set by using custom-made small
+input files, and drawing out the graphs on paper. We also found the solution 
+to the dominating set by hand. Then we compared the outputs of our 
+implementation to our manual solutions, which matched our expectations. 
+
+For example, in smallNetwork.txt, we had the following graph:
+
+                5             
+                |             
+          4-----1-----2-------6-----8
+                |             |
+                3             7
+
+Using our implementation, our program should first get the user with the most
+number of edges (friends). This would be the user with ID 1, since it has 
+4 uncovered friends, more than any other user. Then we set all its friends 
+and itself to covered, and remove these covered users from all the other users'
+friend list. (We also push 1 to the dominantUsers vector.) Now if we were to
+ignore the covered users, the graph would look like
+
+        6-----8
+        |
+        7
+
+And in this case, it's clear that 6 is the user with the most uncovered friends
+(after all, 6 has two friends, while 7 and 8 each have just one friend). So we
+make 6, 7, and 8 covered and push 6 to the dominantUsers vector. Now all the
+users have been covered so we exit the while loop, and then print all the 
+elements in the dominantUsers vector. In this case, those elements would just 
+be 1 and 6. Therefore, using our implementation, two users (users with IDs 1
+and 6) are needed to influence the entire network.
+
+
+The input files can be interpreted as follows (there is no header): each line
+has two integers, separated by a space. The first integer in each line 
+represents the ID of the first user, and the second integer represents the ID
+of the second user. Each line indicates that the first user is friends with the
+second user. (For example, if a line were "5 12", this means that the user with
+ID 5 is friends with the user with ID 12.) 
+
+///////////////////////////////////////////////////////////////////////////////
+                    How the grader should run our program:
+///////////////////////////////////////////////////////////////////////////////
+Our extension program should be run as
+./extension inputFile outputFile
+
+We have provided the files smallNetwork.txt and largerNetwork.txt to test upon.
+These are relatively small files, so verifying their correctness is easy.
+
+After compiling the files via make, use the given data sets as the input file.
+For example:
+./extension smallNetwork.txt output.txt
+And in this case, you would expect output.txt to indicate that the users with
+IDs 1 and 6 can post a message, and everyone in the network would receive that
+message (see "How we tested it" section to read how this works).
+
+You can also use
+./extension largeNetwork.txt output.txt
+The graph for largeNetwork.txt would look like 
+
+   16             19
+   |              |
+1--2--3--4--5--6--7--8--9--10--11--12--13--14--15
+   |        |               |
+   17       18             20
+
+We can see that the user with ID 2 starts out with the most friends (it has 
+4 friends, which is more than that of any other user), so we push 2 to the
+dominantUsers vector and mark 1, 2, 3, 16, and 17 as covered. Then, ignoring
+the covered users, our graph would now look like:
+
+         19
+         |
+4--5--6--7--8--9--10--11--12--13--14--15
+   |               |
+   18             20
+
+Now, the users with IDs 5, 7 and 10 all have the most uncovered friends (3). 
+We could push any of these to the dominantUsers vector, and our unordered map
+decides to push the user with ID 5 to the vector (which is acceptable). So we
+now mark 4,5,6 and 18 as covered so that our updated graph (ignoring the 
+covered users) would look like the following:
+
+19
+|
+7--8--9--10--11--12--13--14--15
+         |
+         20
+
+Now the users with IDs 7 and 10 have the most uncovered friends (2). We could
+push either of these to the dominantUsers vector, and our unordered map decides
+to push 10 (which is acceptable). So we now mark 10, 9, 20, and 11 as covered
+so that our graph (ignoring covered users now looks like:
+
+19
+|
+7--8--12--13--14--15
+
+Now the users with ID 7, 8, 12, 13 and 14 have the most uncovered friends (2). 
+The unordered map decides to push 14 to the dominantUsers vector, which is
+valid because it's one of the users with the most uncovered friends. So we
+mark 13, 14 and 15 as covered, making our graph look like so (ignoring covered
+users):
+
+19
+|
+7--8--12
+
+Now the users with ID 7 and 8 have the most uncovered friends (2). The 
+unordered map decides to push 7 to the dominantUsers vector, which is valid 
+since 7 is currently one of the users who have the most uncovered friends.
+So we mark 7, 19 and 8 as covered, making our graph look like so:
+
+12
+
+Now 12 is the only uncovered user ID left in the network so we push 12 to the
+dominantUsers vector. 
+Thus the users 2, 5, 10, 14, 7 and 12 can post the message and everyone in the
+network would receive the message. 
+The output file matches these explanations.
+
+///////////////////////////////////////////////////////////////////////////////
+                      Steps to access the entire data set:
+///////////////////////////////////////////////////////////////////////////////
+
+To access the entire data set, go to 
+/home/linux/ieng6/cs100w/public/pa4/SocialNetworks
+To access the facebook_1000.txt data set
+These were data sets that were provided from the writeup.
+For example, if you run
+./extension facebook_1000.txt output.txt
+You should expect the following in the output.txt file:
+
+In order for all users to be influenced, the network may need 251 different
+users to post the message.
+The users associated with the following IDs can post the message
+for the message to reach everyone in the network:
+
+687 371 631 842 835 773 73 626 434 281 250 384 529 222 425 807 
+436 873 793 137 978 945 195 967 34 103 821 709 645 840 17 
+458 802 664 640 953 223 438 904 893 764 726 713 637 187 47 
+468 889 797 760 670 616 586 550 196 994 160 150 456 411 224 
+880 11 883 311 858 852 811 798 795 785 770 753 735 683 583 
+536 213 165 162 975 143 37 854 48 431 915 940 317 325 337 
+837 820 815 779 774 718 686 646 630 598 573 569 563 538 517 
+243 175 172 988 952 831 838 80 279 879 799 794 792 788 784 
+783 775 754 751 749 746 745 727 725 721 720 702 697 695 688 
+680 674 665 662 661 654 648 627 607 596 576 555 553 549 528 
+519 518 516 225 219 212 189 188 183 179 993 169 983 981 980 
+157 156 152 147 968 135 134 956 128 448 38 860 232 31 227 
+106 464 8 877 830 512 414 51 409 98 847 24 3 107 58 
+108 12 112 18 19 21 118 845 22 470 478 896 482 483 78 
+903 82 906 492 86 504 919 117 120 249 254 256 261 264 273 
+276 277 278 294 306 314 315 328 332 335 341 344 361 369 370 
+372 376 379 382 388 396 422 451 475 494 
+
+So from these results we can conclude that about 25% of the users in the 
+network need to post the same message for everyone on the network to be able to 
+see that message -- at least for this particular case.
